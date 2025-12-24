@@ -12,6 +12,7 @@ import { Roles } from 'src/roles/entities/role.entity';
 import { RefreshTokens } from './entities/refreshToken.entity';
 import { TokenService } from './token.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { StringValue } from 'ms';
 
 @Module({
   imports: [
@@ -20,10 +21,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     TypeOrmModule.forFeature([Users, Roles, RefreshTokens]),
     JwtModule.registerAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
+      useFactory: async (config: ConfigService) => ({
         secret: config.getOrThrow<string>('JWT_ACCESS_SECRET'),
         signOptions: {
-          expiresIn: config.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN') as string,
+          expiresIn: config.getOrThrow<StringValue>('JWT_ACCESS_EXPIRES_IN'), // remove as string
         },
       }),
     }),
