@@ -15,11 +15,11 @@ import { RolesModule } from './roles/roles.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        host: config.get('DB_HOST'),
-        port: Number(config.get('DB_PORT')),
-        username: config.get('DB_USERNAME'),
-        password: config.get('DB_PASSWORD'),
-        database: config.get('DB_NAME'),
+        host: config.getOrThrow<string>('DB_HOST'),
+        port: Number(config.getOrThrow<string>('DB_PORT')),
+        username: config.getOrThrow<string>('DB_USERNAME'),
+        password: config.getOrThrow<string>('DB_PASSWORD'),
+        database: config.getOrThrow<string>('DB_NAME'),
         autoLoadEntities: true,
         synchronize: false,
         ssl:

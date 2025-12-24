@@ -34,8 +34,8 @@ export class TokenService {
     };
 
     return this.jwtService.sign(payload, {
-      secret: this.configService.get('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN'),
+      secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      expiresIn: this.configService.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN'),
     });
   }
 
@@ -60,7 +60,7 @@ export class TokenService {
     let payload: any;
     try {
       payload = this.jwtService.verify(oldToken, {
-        secret: this.configService.get('JWT_REFRESH_SECRET'),
+        secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
       });
     } catch {
       throw new UnauthorizedException('만료된 refresh token');
