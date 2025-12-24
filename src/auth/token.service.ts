@@ -35,7 +35,7 @@ export class TokenService {
 
     return this.jwtService.sign(payload, {
       secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN'),
+      expiresIn: this.configService.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN') as string,
     });
   }
 
