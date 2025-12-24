@@ -41,6 +41,15 @@ export class TokenService {
     });
   }
 
+  // 특정 refresh token 무효화 (로그아웃)
+  async revokeRefreshToken(token: string) {
+    const result = await this.refreshTokenRepository.delete({ token });
+
+    if (!result.affected || result.affected === 0) {
+      throw new UnauthorizedException('유효하지 않은 refresh token');
+    }
+  }
+
   async saveRefreshToken(token: string, user: Users) {
     return this.refreshTokenRepository.save({
       token,

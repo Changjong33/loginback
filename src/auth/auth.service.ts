@@ -58,6 +58,14 @@ export class AuthService {
   }
 
   // ===============================
+  // 로그아웃 (Refresh Token 무효화)
+  // ===============================
+  async logout(refreshToken: string) {
+    await this.tokenService.revokeRefreshToken(refreshToken);
+    return { success: true };
+  }
+
+  // ===============================
   // 내부 유저 검증 로직
   // ===============================
   private async validateUser(email: string, password: string): Promise<Users> {

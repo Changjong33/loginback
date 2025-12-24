@@ -28,7 +28,7 @@ export class Users {
   @Column({ nullable: true })
   nickname: string;
 
-  @Column({ default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
   @CreateDateColumn({ name: 'created_at' })

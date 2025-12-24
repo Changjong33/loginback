@@ -10,6 +10,15 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // CORS 설정
+  const origins = process.env.CORS_ORIGINS?.split(',').map((o) => o.trim()) ?? [
+    'http://localhost:3000',
+  ];
+  app.enableCors({
+    origin: origins,
+    credentials: true,
+  });
+
   // 전역 파이프
   app.useGlobalPipes(
     new ValidationPipe({
