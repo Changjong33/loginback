@@ -27,7 +27,7 @@ export class UsersController {
 
   // 내 프로필 조회
   @Get('me')
-  getProfile(@GetUser() user: Users) {
-    return user;
+  async getProfile(@GetUser() user: Users) {
+    return this.usersService.findById(user.id);
   }
 }

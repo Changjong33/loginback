@@ -25,7 +25,7 @@ export class UsersService {
   async findById(id: string): Promise<Users> {
     const user = await this.usersRepository.findOne({
       where: { id },
-      relations: ['roles'],
+      relations: ['roles', 'userProfileImage'],
     });
     if (!user) {
       throw new NotFoundException('유저를 찾을 수 없습니다.');

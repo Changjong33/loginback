@@ -9,9 +9,13 @@ import {
   JoinTable,
   ManyToMany,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Post } from 'src/posts/entities/post.entity';
+import { Comment } from 'src/comments/entities/comment.entity';
+import { UserProfileImage } from './user-profile-image.entity';
 
 @Index('users_email_key', ['email'], { unique: true })
 @Entity('users')
@@ -50,4 +54,13 @@ export class Users {
     inverseJoinColumns: [{ name: 'role_id' }],
   })
   roles: Roles[];
+
+  @OneToMany(() => Post, (post) => post.user)
+  posts: Post[];
+
+  @OneToMany(() => Comment, (comment) => comment.user)
+  comments: Comment[];
+
+  @OneToOne(() => UserProfileImage, (profileImage) => profileImage.user)
+  userProfileImage: UserProfileImage | null;
 }
