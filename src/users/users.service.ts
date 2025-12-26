@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Users } from './entities/user.entity';
 import { Roles } from 'src/roles/entities/role.entity';
 import { UserProfileImage } from './entities/user-profile-image.entity';
+import { StorageService } from 'src/common/services/storage.service';
 
 @Injectable()
 export class UsersService {
@@ -14,6 +15,7 @@ export class UsersService {
     private readonly rolesRepository: Repository<Roles>,
     @InjectRepository(UserProfileImage)
     private readonly userProfileImageRepository: Repository<UserProfileImage>,
+    private readonly storageService: StorageService,
   ) {}
 
   // 이메일로 유저 찾기 (로그인에서 사용)
@@ -87,21 +89,32 @@ export class UsersService {
   }
 
   // 프로필 사진 업로드/수정
-  async updateProfileImage(userId: string, imageUrl: string): Promise<UserProfileImage> {
+  async updateProfileImage(userId: string, base64Image: string): Promise<UserProfileImage> {
+    // Supabase Storage에 업로드
+    const fileName = `profile-${userId}-${Date.now()}`;
+    const publicUrl = await this.storageService.uploadBase64Image(
+      base64Image,
+      'profile-images',
+      fileName,
+    );
+
     // 기존 프로필 사진 확인
     let profileImage = await this.userProfileImageRepository.findOne({
       where: { userId },
     });
 
     if (profileImage) {
+      // 기존 파일 삭제 (선택사항 - 필요시)
+      // 기존 URL에서 파일명 추출하여 삭제할 수 있지만, upsert로 덮어쓰므로 생략 가능
+      
       // 기존 사진 업데이트
-      profileImage.imageUrl = imageUrl;
+      profileImage.imageUrl = publicUrl;
       return this.userProfileImageRepository.save(profileImage);
     } else {
       // 새 프로필 사진 생성
       profileImage = this.userProfileImageRepository.create({
         userId,
-        imageUrl,
+        imageUrl: publicUrl,
       });
       return this.userProfileImageRepository.save(profileImage);
     }

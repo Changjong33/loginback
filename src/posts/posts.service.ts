@@ -7,6 +7,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Users } from 'src/users/entities/user.entity';
 import { Comment } from 'src/comments/entities/comment.entity';
+import { StorageService } from 'src/common/services/storage.service';
 
 @Injectable()
 export class PostsService {
@@ -15,6 +16,7 @@ export class PostsService {
     private readonly postsRepository: Repository<Post>,
     @InjectRepository(PostImage)
     private readonly postImagesRepository: Repository<PostImage>,
+    private readonly storageService: StorageService,
   ) {}
 
   async create(createPostDto: CreatePostDto, user: Users): Promise<Post> {
@@ -25,16 +27,26 @@ export class PostsService {
 
     const savedPost = await this.postsRepository.save(post);
 
-    // 이미지 저장
-    const images = createPostDto.images.map((img, index) =>
-      this.postImagesRepository.create({
-        imageUrl: img.imageUrl,
-        sortOrder: img.sortOrder ?? index,
-        post: savedPost,
+    // 이미지를 Supabase Storage에 업로드하고 저장
+    const uploadedImages = await Promise.all(
+      createPostDto.images.map(async (img, index) => {
+        // Base64 이미지를 Supabase에 업로드
+        const fileName = `post-${savedPost.id}-${index}-${Date.now()}`;
+        const publicUrl = await this.storageService.uploadBase64Image(
+          img.imageUrl,
+          'post-images',
+          fileName,
+        );
+
+        return this.postImagesRepository.create({
+          imageUrl: publicUrl,
+          sortOrder: img.sortOrder ?? index,
+          post: savedPost,
+        });
       }),
     );
 
-    await this.postImagesRepository.save(images);
+    await this.postImagesRepository.save(uploadedImages);
 
     return this.findOne(savedPost.id);
   }
@@ -84,6 +96,35 @@ export class PostsService {
       },
     });
 
+    // 대댓글의 대댓글을 재귀적으로 로드하는 헬퍼 함수
+    const loadNestedReplies = async (comment: Comment): Promise<void> => {
+      if (comment.replies && comment.replies.length > 0) {
+        for (const reply of comment.replies) {
+          // 대댓글의 대댓글 로드
+          const nestedReplies = await this.postsRepository.manager.find(Comment, {
+            where: {
+              parent: { id: reply.id },
+            },
+            relations: [
+              'user',
+              'user.userProfileImage',
+            ],
+            order: {
+              createdAt: 'ASC',
+            },
+          });
+          reply.replies = nestedReplies;
+          // 재귀적으로 더 깊은 대댓글도 로드
+          await loadNestedReplies(reply);
+        }
+      }
+    };
+
+    // 모든 댓글에 대해 중첩된 대댓글 로드
+    for (const comment of comments) {
+      await loadNestedReplies(comment);
+    }
+
     post.comments = comments;
 
     return post;
@@ -113,16 +154,32 @@ export class PostsService {
       // 기존 이미지 삭제
       await this.postImagesRepository.remove(post.postImages);
 
-      // 새 이미지 저장
-      const images = updatePostDto.images.map((img, index) =>
-        this.postImagesRepository.create({
-          imageUrl: img.imageUrl,
-          sortOrder: img.sortOrder ?? index,
-          post,
+      // 새 이미지를 Supabase Storage에 업로드하고 저장
+      const uploadedImages = await Promise.all(
+        updatePostDto.images.map(async (img, index) => {
+          // 이미 URL인 경우 (이미 Supabase에 업로드된 경우) 그대로 사용
+          // Base64인 경우에만 업로드
+          let publicUrl = img.imageUrl;
+          
+          if (img.imageUrl.startsWith('data:image/')) {
+            // Base64 이미지를 Supabase에 업로드
+            const fileName = `post-${post.id}-${index}-${Date.now()}`;
+            publicUrl = await this.storageService.uploadBase64Image(
+              img.imageUrl,
+              'post-images',
+              fileName,
+            );
+          }
+
+          return this.postImagesRepository.create({
+            imageUrl: publicUrl,
+            sortOrder: img.sortOrder ?? index,
+            post,
+          });
         }),
       );
 
-      await this.postImagesRepository.save(images);
+      await this.postImagesRepository.save(uploadedImages);
     }
 
     await this.postsRepository.save(post);

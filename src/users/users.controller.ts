@@ -34,7 +34,7 @@ export class UsersController {
   @Post('me/profile-image')
   async updateProfileImage(
     @GetUser() user: Users,
-    @Body() body: { imageUrl: string },
+    @Body() body: { imageUrl: string }, // Base64 이미지 데이터
   ) {
     return this.usersService.updateProfileImage(user.id, body.imageUrl);
   }
