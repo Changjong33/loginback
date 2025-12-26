@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Comment } from './entities/comment.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { Users } from 'src/users/entities/user.entity';
@@ -54,7 +54,10 @@ export class CommentsService {
 
   async findByPost(postId: string): Promise<Comment[]> {
     return this.commentsRepository.find({
-      where: { post: { id: postId }, parent: null },
+      where: { 
+        post: { id: postId },
+        parent: IsNull(),
+      },
       relations: [
         'user',
         'user.userProfileImage',
