@@ -36,7 +36,7 @@ export class StorageService {
       const fullFileName = `${fileName}.${extension}`;
 
       // Supabase Storage에 업로드
-      const { data, error } = await supabase.storage
+      const { data: uploadData, error } = await supabase.storage
         .from(bucketName)
         .upload(fullFileName, buffer, {
           contentType: mimeType,
@@ -53,16 +53,24 @@ export class StorageService {
         throw new Error(`Supabase Storage 업로드 실패: ${error.message}. 버킷 '${bucketName}'이 존재하는지 확인하세요.`);
       }
 
+      // 업로드된 파일의 실제 경로 사용 (data.path가 더 정확함)
+      const filePath = uploadData?.path || fullFileName;
+
       // 공개 URL 가져오기
       const { data: urlData } = supabase.storage
         .from(bucketName)
-        .getPublicUrl(fullFileName);
+        .getPublicUrl(filePath);
 
       if (!urlData || !urlData.publicUrl) {
         throw new Error('공개 URL을 가져올 수 없습니다.');
       }
 
-      console.log('Uploaded image URL:', urlData.publicUrl);
+      console.log('Uploaded image details:', {
+        bucketName,
+        filePath,
+        publicUrl: urlData.publicUrl,
+        uploadDataPath: uploadData?.path,
+      });
       
       return urlData.publicUrl;
     } catch (error) {
