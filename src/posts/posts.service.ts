@@ -99,39 +99,34 @@ export class PostsService {
       relations: [
         'user',
         'user.userProfileImage',
-        'replies',
-        'replies.user',
-        'replies.user.userProfileImage',
       ],
       order: {
         createdAt: 'ASC',
-        replies: {
-          createdAt: 'ASC',
-        },
       },
     });
 
-    // 대댓글의 대댓글을 재귀적으로 로드하는 헬퍼 함수
+    // 대댓글을 재귀적으로 로드하는 헬퍼 함수
+    // 부모 댓글 바로 아래에 자식 댓글이 표시되도록 createdAt으로 정렬
     const loadNestedReplies = async (comment: Comment): Promise<void> => {
-      if (comment.replies && comment.replies.length > 0) {
-        for (const reply of comment.replies) {
-          // 대댓글의 대댓글 로드
-          const nestedReplies = await this.postsRepository.manager.find(Comment, {
-            where: {
-              parent: { id: reply.id },
-            },
-            relations: [
-              'user',
-              'user.userProfileImage',
-            ],
-            order: {
-              createdAt: 'ASC',
-            },
-          });
-          reply.replies = nestedReplies;
-          // 재귀적으로 더 깊은 대댓글도 로드
-          await loadNestedReplies(reply);
-        }
+      // 직접 자식 댓글만 로드 (1단계만)
+      const directReplies = await this.postsRepository.manager.find(Comment, {
+        where: {
+          parent: { id: comment.id },
+        },
+        relations: [
+          'user',
+          'user.userProfileImage',
+        ],
+        order: {
+          createdAt: 'ASC', // 생성 시간 순으로 정렬하여 부모 바로 아래에 표시
+        },
+      });
+      
+      comment.replies = directReplies;
+      
+      // 각 대댓글에 대해 재귀적으로 더 깊은 대댓글 로드
+      for (const reply of directReplies) {
+        await loadNestedReplies(reply);
       }
     };
 
@@ -166,7 +161,17 @@ export class PostsService {
 
     // 이미지 업데이트
     if (updatePostDto.images !== undefined) {
-      // 기존 이미지 삭제
+      // 기존 이미지 삭제 (Supabase Storage에서도 삭제)
+      await Promise.all(post.postImages.map(async (img) => {
+        const fileName = img.imageUrl.split('/').pop(); // URL에서 파일명 추출
+        if (fileName) {
+          try {
+            await this.storageService.deleteFile('post-images', fileName);
+          } catch (error) {
+            console.error('Failed to delete image from Supabase:', error);
+          }
+        }
+      }));
       await this.postImagesRepository.remove(post.postImages);
 
       // 새 이미지를 Supabase Storage에 업로드하고 저장
@@ -186,11 +191,13 @@ export class PostsService {
             );
           }
 
-          return this.postImagesRepository.create({
+          // post 관계를 명시적으로 설정
+          const postImage = this.postImagesRepository.create({
             imageUrl: publicUrl,
             sortOrder: img.sortOrder ?? index,
-            post,
           });
+          postImage.post = post; // post 관계 명시적으로 설정
+          return postImage;
         }),
       );
 
