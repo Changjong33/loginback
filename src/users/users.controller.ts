@@ -19,13 +19,7 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
-  // 특정 유저 조회
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findById(id);
-  }
-
-  // 내 프로필 조회
+  // 내 프로필 조회 (반드시 :id 라우트보다 먼저 정의해야 함)
   @Get('me')
   async getProfile(@GetUser() user: Users) {
     try {
@@ -34,5 +28,11 @@ export class UsersController {
       console.error('Error in getProfile:', error);
       throw error;
     }
+  }
+
+  // 특정 유저 조회 (me보다 나중에 정의)
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.usersService.findById(id);
   }
 }
