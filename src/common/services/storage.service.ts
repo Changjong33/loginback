@@ -62,6 +62,8 @@ export class StorageService {
         throw new Error('공개 URL을 가져올 수 없습니다.');
       }
 
+      console.log('Uploaded image URL:', urlData.publicUrl);
+      
       return urlData.publicUrl;
     } catch (error) {
       console.error('StorageService.uploadBase64Image error:', error);
