@@ -13,10 +13,27 @@ async function bootstrap() {
   // CORS 설정
   const origins = process.env.CORS_ORIGINS?.split(',').map((o) => o.trim()) ?? [
     'http://localhost:3000',
+    'https://loginfront-efanb2yqk-changjongs-projects.vercel.app',
   ];
   app.enableCors({
-    origin: origins,
+    origin: (origin, callback) => {
+      // origin이 없으면 (같은 도메인 요청 등) 허용
+      if (!origin) {
+        return callback(null, true);
+      }
+      // 허용된 origin 목록에 있으면 허용
+      if (origins.includes(origin)) {
+        return callback(null, true);
+      }
+      // 개발 환경에서는 모든 origin 허용 (선택사항)
+      if (process.env.NODE_ENV === 'development') {
+        return callback(null, true);
+      }
+      callback(new Error('CORS 정책에 의해 차단되었습니다.'));
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // 전역 파이프
