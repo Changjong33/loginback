@@ -27,26 +27,41 @@ export class PostsService {
 
     const savedPost = await this.postsRepository.save(post);
 
-    // 이미지를 Supabase Storage에 업로드하고 저장
-    const uploadedImages = await Promise.all(
-      createPostDto.images.map(async (img, index) => {
-        // Base64 이미지를 Supabase에 업로드
-        const fileName = `post-${savedPost.id}-${index}-${Date.now()}`;
-        const publicUrl = await this.storageService.uploadBase64Image(
-          img.imageUrl,
-          'post-images',
-          fileName,
+    // 이미지가 있는 경우에만 업로드
+    if (createPostDto.images && createPostDto.images.length > 0) {
+      try {
+        // 이미지를 Supabase Storage에 업로드하고 저장
+        const uploadedImages = await Promise.all(
+          createPostDto.images.map(async (img, index) => {
+            try {
+              // Base64 이미지를 Supabase에 업로드
+              const fileName = `post-${savedPost.id}-${index}-${Date.now()}`;
+              const publicUrl = await this.storageService.uploadBase64Image(
+                img.imageUrl,
+                'post-images',
+                fileName,
+              );
+
+              return this.postImagesRepository.create({
+                imageUrl: publicUrl,
+                sortOrder: img.sortOrder ?? index,
+                post: savedPost,
+              });
+            } catch (error) {
+              console.error(`Failed to upload image ${index}:`, error);
+              throw new Error(`이미지 업로드 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+            }
+          }),
         );
 
-        return this.postImagesRepository.create({
-          imageUrl: publicUrl,
-          sortOrder: img.sortOrder ?? index,
-          post: savedPost,
-        });
-      }),
-    );
-
-    await this.postImagesRepository.save(uploadedImages);
+        await this.postImagesRepository.save(uploadedImages);
+      } catch (error) {
+        // 이미지 업로드 실패 시 게시물도 삭제
+        await this.postsRepository.remove(savedPost);
+        console.error('Failed to upload images, post deleted:', error);
+        throw error;
+      }
+    }
 
     return this.findOne(savedPost.id);
   }

@@ -14,9 +14,10 @@ export class CreatePostDto {
   @IsString()
   caption?: string;
 
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PostImageDto)
-  images: PostImageDto[];
+  images?: PostImageDto[];
 }
 
