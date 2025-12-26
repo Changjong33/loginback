@@ -28,6 +28,11 @@ export class UsersController {
   // 내 프로필 조회
   @Get('me')
   async getProfile(@GetUser() user: Users) {
-    return this.usersService.findById(user.id);
+    try {
+      return await this.usersService.findById(user.id);
+    } catch (error) {
+      console.error('Error in getProfile:', error);
+      throw error;
+    }
   }
 }

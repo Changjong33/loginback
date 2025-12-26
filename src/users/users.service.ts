@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Users } from './entities/user.entity';
 import { Roles } from 'src/roles/entities/role.entity';
+import { UserProfileImage } from './entities/user-profile-image.entity';
 
 @Injectable()
 export class UsersService {
@@ -11,6 +12,8 @@ export class UsersService {
     private readonly usersRepository: Repository<Users>,
     @InjectRepository(Roles)
     private readonly rolesRepository: Repository<Roles>,
+    @InjectRepository(UserProfileImage)
+    private readonly userProfileImageRepository: Repository<UserProfileImage>,
   ) {}
 
   // 이메일로 유저 찾기 (로그인에서 사용)
@@ -25,10 +28,27 @@ export class UsersService {
   async findById(id: string): Promise<Users> {
     const user = await this.usersRepository.findOne({
       where: { id },
-      relations: ['roles', 'userProfileImage'],
+      relations: ['roles'],
     });
+    
     if (!user) {
       throw new NotFoundException('유저를 찾을 수 없습니다.');
+    }
+
+    // userProfileImage는 별도로 로드 (없을 수 있음)
+    try {
+      const profileImage = await this.userProfileImageRepository.findOne({
+        where: { userId: id },
+      });
+      
+      if (profileImage) {
+        user.userProfileImage = profileImage;
+      } else {
+        user.userProfileImage = null;
+      }
+    } catch (error) {
+      console.error('Error loading userProfileImage:', error);
+      user.userProfileImage = null;
     }
 
     return user;
