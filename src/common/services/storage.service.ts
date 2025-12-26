@@ -48,7 +48,7 @@ export class StorageService {
           error: error.message,
           bucketName,
           fileName: fullFileName,
-          statusCode: error.statusCode,
+          errorName: error.name,
         });
         throw new Error(`Supabase Storage 업로드 실패: ${error.message}. 버킷 '${bucketName}'이 존재하는지 확인하세요.`);
       }
