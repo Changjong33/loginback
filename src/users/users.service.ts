@@ -85,4 +85,25 @@ export class UsersService {
     // 저장 → user_roles 자동 생성
     return this.usersRepository.save(user);
   }
+
+  // 프로필 사진 업로드/수정
+  async updateProfileImage(userId: string, imageUrl: string): Promise<UserProfileImage> {
+    // 기존 프로필 사진 확인
+    let profileImage = await this.userProfileImageRepository.findOne({
+      where: { userId },
+    });
+
+    if (profileImage) {
+      // 기존 사진 업데이트
+      profileImage.imageUrl = imageUrl;
+      return this.userProfileImageRepository.save(profileImage);
+    } else {
+      // 새 프로필 사진 생성
+      profileImage = this.userProfileImageRepository.create({
+        userId,
+        imageUrl,
+      });
+      return this.userProfileImageRepository.save(profileImage);
+    }
+  }
 }

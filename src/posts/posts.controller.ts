@@ -5,11 +5,13 @@ import {
   Body,
   Param,
   Delete,
+  Patch,
   UseGuards,
   Query,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { Users } from 'src/users/entities/user.entity';
@@ -35,6 +37,15 @@ export class PostsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.postsService.findOne(id);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() updatePostDto: UpdatePostDto,
+    @GetUser() user: Users,
+  ) {
+    return this.postsService.update(id, updatePostDto, user.id);
   }
 
   @Delete(':id')

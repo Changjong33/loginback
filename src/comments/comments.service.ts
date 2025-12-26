@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { Comment } from './entities/comment.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { UpdateCommentDto } from './dto/update-comment.dto';
 import { Users } from 'src/users/entities/user.entity';
 import { Post } from 'src/posts/entities/post.entity';
 
@@ -72,6 +73,28 @@ export class CommentsService {
         },
       },
     });
+  }
+
+  async update(
+    id: string,
+    updateCommentDto: UpdateCommentDto,
+    userId: string,
+  ): Promise<Comment> {
+    const comment = await this.commentsRepository.findOne({
+      where: { id },
+      relations: ['user', 'post', 'parent'],
+    });
+
+    if (!comment) {
+      throw new NotFoundException('댓글을 찾을 수 없습니다.');
+    }
+
+    if (comment.user.id !== userId) {
+      throw new UnauthorizedException('댓글을 수정할 권한이 없습니다.');
+    }
+
+    comment.content = updateCommentDto.content;
+    return this.commentsRepository.save(comment);
   }
 
   async delete(id: string, userId: string): Promise<void> {
